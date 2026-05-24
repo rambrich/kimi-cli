@@ -93,4 +93,48 @@ class KimiClient:
         payload = {
             "model": self.model,
             "messages": messages,
-         
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": stream,
+        }
+
+        if stream:
+            return self._stream_chat(payload)
+        return self._blocking_chat(payload)
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _blocking_chat(self, payload: dict) -> str:
+        response = self._http.post("/chat/completions", content=json.dumps(payload))
+        if response.status_code != 200:
+            raise KimiClientError(response.status_code, response.text)
+        data = response.json()
+        return data["choices"][0]["message"]["content"]
+
+    def _stream_chat(self, payload: dict) -> Generator[str, None, None]:
+        # Use a context manager so the connection is properly closed after
+        # the caller exhausts the generator.
+        with self._http.stream("POST", "/chat/completions", content=json.dumps(payload)) as response:
+            if response.status_code != 200:
+                raise KimiClientError(response.status_code, response.read().decode())
+            for line in response.iter_lines():
+                if not line or line == "data: [DONE]":
+                    continue
+                if line.startswith("data: "):
+                    chunk = json.loads(line[len("data: "):])
+                    delta = chunk["choices"][0].get("delta", {})
+                    text = delta.get("content", "")
+                    if text:
+                        yield text
+
+    def close(self) -> None:
+        """Close the underlying HTTP connection pool."""
+        self._http.close()
+
+    def __enter__(self) -> "KimiClient":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
