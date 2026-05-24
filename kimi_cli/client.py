@@ -73,7 +73,9 @@ class KimiClient:
         # Raised default temperature slightly from 0.3 to 0.7 — I find
         # the responses feel more natural for my personal use cases.
         temperature: float = 0.7,
-        max_tokens: int = 2048,
+        # Bumped max_tokens from 2048 to 4096 — I often work with longer
+        # outputs (summaries, code files) and kept hitting the old limit.
+        max_tokens: int = 4096,
     ) -> str | Generator[str, None, None]:
         """Send a chat completion request.
 
@@ -91,10 +93,4 @@ class KimiClient:
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": stream,
-        }
-
-        if stream:
-           
+         
