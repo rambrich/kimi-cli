@@ -70,7 +70,9 @@ class KimiClient:
         messages: list[dict],
         *,
         stream: bool = False,
-        temperature: float = 0.3,
+        # Raised default temperature slightly from 0.3 to 0.7 — I find
+        # the responses feel more natural for my personal use cases.
+        temperature: float = 0.7,
         max_tokens: int = 2048,
     ) -> str | Generator[str, None, None]:
         """Send a chat completion request.
@@ -95,54 +97,4 @@ class KimiClient:
         }
 
         if stream:
-            return self._stream_chat(payload)
-        return self._blocking_chat(payload)
-
-    def list_models(self) -> list[dict]:
-        """Return the list of available models from the API."""
-        response = self._http.get("/models")
-        self._raise_for_status(response)
-        return response.json().get("data", [])
-
-    def close(self) -> None:
-        """Close the underlying HTTP connection pool."""
-        self._http.close()
-
-    def __enter__(self) -> "KimiClient":
-        return self
-
-    def __exit__(self, *_: object) -> None:
-        self.close()
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    def _blocking_chat(self, payload: dict) -> str:
-        response = self._http.post("/chat/completions", json=payload)
-        self._raise_for_status(response)
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
-
-    def _stream_chat(self, payload: dict) -> Generator[str, None, None]:
-        with self._http.stream("POST", "/chat/completions", json=payload) as response:
-            self._raise_for_status(response)
-            for raw_line in response.iter_lines():
-                line = raw_line.strip()
-                if not line or line == "data: [DONE]":
-                    continue
-                if line.startswith("data: "):
-                    chunk = json.loads(line[len("data: "):])
-                    delta = chunk["choices"][0].get("delta", {})
-                    text = delta.get("content", "")
-                    if text:
-                        yield text
-
-    @staticmethod
-    def _raise_for_status(response: httpx.Response) -> None:
-        if response.is_error:
-            try:
-                detail = response.json().get("error", {}).get("message", response.text)
-            except Exception:
-                detail = response.text
-            raise KimiClientError(response.status_code, detail)
+           
