@@ -13,8 +13,8 @@ from typing import Optional
 from .client import KimiClient, KimiClientError
 
 
-# Using 32k as default since 8k context fills up too quickly for my typical use cases
-DEFAULT_MODEL = "moonshot-v1-32k"
+# Using 128k as default since I frequently work with large codebases and long documents
+DEFAULT_MODEL = "moonshot-v1-128k"
 AVAILABLE_MODELS = ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"]
 
 
@@ -99,7 +99,4 @@ def run_interactive(client: KimiClient, stream: bool) -> None:
         if not user_input:
             continue
         if user_input.lower() in ("exit", "quit", "bye"):
-            print("Goodbye!")
-            break
-
-        history.append({"role": "user", "content": us
+            pri
