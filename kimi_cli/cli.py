@@ -13,7 +13,8 @@ from typing import Optional
 from .client import KimiClient, KimiClientError
 
 
-DEFAULT_MODEL = "moonshot-v1-8k"
+# Using 32k as default since 8k context fills up too quickly for my typical use cases
+DEFAULT_MODEL = "moonshot-v1-32k"
 AVAILABLE_MODELS = ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"]
 
 
@@ -101,62 +102,4 @@ def run_interactive(client: KimiClient, stream: bool) -> None:
             print("Goodbye!")
             break
 
-        history.append({"role": "user", "content": user_input})
-
-        try:
-            print("Kimi: ", end="", flush=True)
-            response = client.chat(history, stream=stream)
-            print(response)
-            history.append({"role": "assistant", "content": response})
-        except KimiClientError as exc:
-            print(f"\nError: {exc}", file=sys.stderr)
-
-
-def run_single(client: KimiClient, prompt: str, system: Optional[str], stream: bool) -> None:
-    """Send a single prompt and print the response."""
-    messages = []
-    if system:
-        messages.append({"role": "system", "content": system})
-    messages.append({"role": "user", "content": prompt})
-
-    try:
-        response = client.chat(messages, stream=stream)
-        print(response)
-    except KimiClientError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        sys.exit(1)
-
-
-def main() -> None:
-    """Main entry point for the kimi CLI."""
-    parser = build_parser()
-    args = parser.parse_args()
-
-    api_key = resolve_api_key(args.api_key)
-    client = KimiClient(api_key=api_key, model=args.model)
-    stream = not args.no_stream
-
-    if args.interactive:
-        if args.system:
-            client.set_system_prompt(args.system)
-        run_interactive(client, stream=stream)
-        return
-
-    # Resolve prompt from positional arg or stdin
-    if args.prompt:
-        prompt = args.prompt
-    elif not sys.stdin.isatty():
-        prompt = sys.stdin.read().strip()
-    else:
-        parser.print_help()
-        sys.exit(0)
-
-    if not prompt:
-        print("Error: Empty prompt.", file=sys.stderr)
-        sys.exit(1)
-
-    run_single(client, prompt, system=args.system, stream=stream)
-
-
-if __name__ == "__main__":
-    main()
+        history.append({"role": "user", "content": us
